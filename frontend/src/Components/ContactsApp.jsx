@@ -2,6 +2,9 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import ContactsCardsContainer from "./ContactsCardsContainer";
 import ContactForm from "./ContactForm";
+import { jwtDecode } from "jwt-decode";
+import Cookies from "js-cookie";
+import { useNavigate } from "react-router-dom";
 
 export default function ContactsApp() {
   //States
@@ -15,8 +18,28 @@ export default function ContactsApp() {
   });
   const [postResponse, setPostResponse] = useState("");
   const [isEditing, setIsEditing] = useState(false);
+  const [currentUser, setCurrentUser] = useState(() => {
+    const jwtToken = Cookies.get("jwt-auth");
+    if (!jwtToken) {
+      return "";
+    }
+
+    try {
+      const decoded = jwtDecode(jwtToken);
+      return decoded.username;
+    } catch {
+      return "";
+    }
+  });
+  const navigate = useNavigate();
 
   //useEffect
+  useEffect(() => {
+    if (!currentUser) {
+      return navigate("/not-authorized");
+    }
+  }, []);
+  
   useEffect(() => {
     handleContactsDB();
   }, [postResponse]);
@@ -120,9 +143,17 @@ export default function ContactsApp() {
     }
   };
 
+  const handleLogout = () => {
+    Cookies.remove("jwt-auth");
+    setCurrentUser("");
+    navigate("/");
+  }
+
   //Render
   return (
     <div>
+      <h1>Welcome {currentUser}</h1>
+      <button onClick={() => handleLogout()}>Logout</button>
       <ContactForm
         name={formData.name}
         email={formData.email}
